@@ -50,7 +50,7 @@ if st.button("Run Pipeline"):
     st.header("4. Binding Simulation")
     simulator = InteractionSimulator(target_seq, optimized_aa)
     energy = simulator.predict_binding_energy()
-    st.metric("Predicted Binding Energy ($\Delta G$)", f"{energy} kcal/mol")
+    st.metric(r"Predicted Binding Energy ($\Delta G$)", f"{energy} kcal/mol")
 
     # --- Step 4: GenBank Generation ---
     st.header("5. Download Vector File")
