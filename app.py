@@ -22,7 +22,6 @@ if 'analysis_results' not in st.session_state:
 st.title("🧬 Intrabody Studio Pro")
 st.markdown("---")
 
-# 1. 入力セクション
 st.header("1. Target Strategy")
 col_wt, col_mt = st.columns(2)
 with col_wt:
@@ -40,7 +39,6 @@ end_pos = col2.number_input("End Pos", value=max(diff_indices)+2 if diff_indices
 exposure = discovery.calculate_exposure_score(start_pos, end_pos)
 col3.metric("Exposure Score", f"{exposure:.2f}")
 
-# 実行ボタン
 if st.button("🚀 Run Full Design Pipeline"):
     with st.spinner("Analyzing and Optimizing..."):
         raw_aa = discovery.discover_binder()
@@ -59,13 +57,12 @@ if st.button("🚀 Run Full Design Pipeline"):
             'start_pos': start_pos, 'end_pos': end_pos
         }
 
-# 結果表示セクション
 if st.session_state.analysis_results:
     res = st.session_state.analysis_results
     st.header("3. Design Results & Validation")
     
     c1, c2, c3 = st.columns(3)
-    c1.metric("Specificity Score ($\Delta \Delta G$)", res['spec_res']['Specificity_Score'])
+    c1.metric("Specificity Score", res['spec_res']['Specificity_Score'])
     c2.metric("Final $pI$", f"{res['final_pi']:.2f}")
     c3.metric("Status", res['status'])
 
