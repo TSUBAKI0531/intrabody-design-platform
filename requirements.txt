@@ -45,3 +45,7 @@ tzdata==2025.3
 urllib3==2.6.3
 watchdog==6.0.0
 wheel==0.46.3
+stmol==0.0.9
+py3Dmol==2.0.3
+plotly
+fpdf2
