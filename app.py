@@ -1,11 +1,13 @@
 import streamlit as st
 import pandas as pd
-from Bio.SeqUtils import ProtParamData
 import os
 import matplotlib.pyplot as plt
 import plotly.express as px
 from stmol import showmol
 import py3Dmol
+
+from Bio.SeqUtils.ProtParam import ProteinAnalysis
+from Bio.SeqUtils import ProtParamData
 
 from src.optimizer import IntrabodyOptimizer
 from src.simulator import AntibodyDiscoveryEngine, InteractionSimulator, AFMValidator, RefinementEngine, MutantSimulator, SpecificityEvaluator, ProteomeScanner
