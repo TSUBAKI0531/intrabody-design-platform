@@ -75,15 +75,15 @@ if st.button("🚀 Run Full Design Pipeline"):
             st.subheader("Hydropathy Profile (Kyte-Doolittle)")
             analysis = ProteinAnalysis(refined_aa)
             
-            # 引数をキーワード指定(window=...)ではなく、順番通りに渡します
-            # 第1引数: window (9)
-            # 第2引数: edge (0.4)
-            # 第3引数: scale (ProtParamData.kd)
-            chart_data = analysis.protein_scale(9, 0.4, ProtParamData.kd)
+            # --- 正しい順番に修正 ---
+            # 第1引数: scale (数値の辞書データ)
+            # 第2引数: window (窓サイズ/整数)
+            # 第3引数: edge (端の重み/数値)
+            chart_data = analysis.protein_scale(ProtParamData.kd, 9, 0.4)
+            # -----------------------
             
-            # グラフ表示
             st.line_chart(chart_data)
-            st.info("💡 スコアが 0 より大きいと疎水性（ベタつき）、小さいと親水性（溶けやすさ）を示します。")
+            st.info("💡 正の値は疎水性（ベタつき）、負の値は親水性（溶けやすさ）を示します。")
         with tab3:
             view = py3Dmol.view(query='pdb:1B27', width=800, height=500)
             view.setStyle({'cartoon': {'color': 'spectrum'}}); view.addSurface(py3Dmol.VDW, {'opacity': 0.3})
