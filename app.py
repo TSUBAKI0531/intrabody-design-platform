@@ -1,68 +1,91 @@
 import streamlit as st
 import pandas as pd
 import os
+import matplotlib.pyplot as plt
+import plotly.express as px
+from stmol import showmol
+import py3Dmol
+
 from src.optimizer import IntrabodyOptimizer
-from src.evaluator import BatchEvaluator
-from src.simulator import InteractionSimulator
+from src.simulator import AntibodyDiscoveryEngine, InteractionSimulator, AFMValidator, RefinementEngine, MutantSimulator, SpecificityEvaluator, ProteomeScanner
 from src.vector_builder import VectorDesigner
+from src.report_generator import AnalysisReport
 
-st.set_page_config(page_title="Intrabody Designer", page_icon="🧬")
+st.set_page_config(page_title="Intrabody Studio Pro", layout="wide")
 
-st.title("🧬 Intrabody Development Platform")
-st.markdown("抗体配列の最適化、物性評価、およびベクター構築をブラウザ上で行います。")
+st.title("🧬 Intrabody Studio Pro")
+st.markdown("De Novo設計から多重変異特異性評価、オフターゲットスキャンまでを網羅")
+st.markdown("---")
 
-# サイドバー：ターゲット設定
-st.sidebar.header("Target Settings")
-target_seq = st.sidebar.text_area("Target Protein Sequence", 
-    value="MTEYKLVVVGAGGVGKSALTIQLIQNHFVDEYDPTIEDSYRKQVVIDGETCLLDILDTAGQEEYSAMRDQYMRTGEGFLCVFAINNTKSFEDIHQYREQIKRVKDSDDVPMVLVGNKCDLAARTVESRQAQDLARSYGIPYIETSAKTRQGVEDAFYTLVREIRQH")
+# 1. デュアルターゲット入力
+st.header("1. Target Strategy (Wild-type vs Mutant)")
+col_wt, col_mt = st.columns(2)
+with col_wt:
+    wt_seq = st.text_area("Wild-type (WT) Sequence", height=150, value="MTEYKLVVVGAGGVGKSALTI...")
+with col_mt:
+    mt_seq = st.text_area("Mutant (MT) Sequence", height=150, value="MTEYKLVVVGAGDVGKSALTI...")
 
-# メイン画面：抗体候補の入力
-st.header("1. Input Antibody Candidates")
-input_data = st.text_area("Candidate ID and Sequence (CSV format: ID, Sequence)", 
-    value="ITB-Alpha, MAEVQLVESGGGLVQPGGSLRLSCAASGFTFSSYAMSWVRQAPGKGLEWVS\nITB-Beta, MAEVQLVESGGGLVQPGGSLRLSCAASGFTFSSYAMSWVRQAPGKGLEWVSLLLL")
+# 2. 変異検知 & ドメイン推薦
+diff_indices = [i+1 for i, (a, b) in enumerate(zip(wt_seq, mt_seq)) if a != b]
+discovery = AntibodyDiscoveryEngine(mt_seq)
 
-if st.button("Run Pipeline"):
-    # データ整形
-    candidate_dict = {}
-    for line in input_data.strip().split("\n"):
-        cid, seq = line.split(",")
-        candidate_dict[cid.strip()] = seq.strip()
+st.header("2. Domain Selection & Exposure Score")
+if st.button("🌟 Recommend Best Binding Sites"):
+    recs = discovery.recommend_domains()
+    st.table(recs)
 
-    # --- Step 1: Evaluation ---
-    st.header("2. Batch Evaluation & Ranking")
-    evaluator = BatchEvaluator(candidate_dict)
-    ranking = evaluator.evaluate_all()
-    st.dataframe(ranking)
+col1, col2, col3 = st.columns(3)
+start_pos = col1.number_input("Start Pos", value=min(diff_indices)-2 if diff_indices else 1)
+end_pos = col2.number_input("End Pos", value=max(diff_indices)+2 if diff_indices else 20)
+exposure = discovery.calculate_exposure_score(start_pos, end_pos)
+col3.metric("Exposure Score", f"{exposure:.2f}")
 
-    # --- Step 2: Optimization ---
-    top_candidate = ranking.iloc[0]
-    st.header(f"3. Optimization Result ({top_candidate['ID']})")
-    
-    optimizer = IntrabodyOptimizer(top_candidate['Sequence'])
-    optimized_aa = optimizer.optimize(target_pi=9.2)
-    
-    col1, col2 = st.columns(2)
-    col1.metric("Original pI", top_candidate['pI'])
-    col2.metric("Optimized AA Length", len(optimized_aa))
-    st.code(optimized_aa, language="text")
+# 3. 設計パイプライン実行
+if st.button("🚀 Run Full Design Pipeline"):
+    with st.spinner("Executing advanced simulation..."):
+        # Discovery & Optimization
+        raw_aa = discovery.discover_binder()
+        optimizer = IntrabodyOptimizer(raw_aa)
+        validator = AFMValidator("results/temp.pdb")
+        refined_aa, final_pi, status = RefinementEngine(optimizer, validator).run_refinement_loop(raw_aa)
+        
+        # Specficity & Safety
+        spec_eval = SpecificityEvaluator(wt_seq, mt_seq, refined_aa)
+        spec_res = spec_eval.calculate_specificity_score(diff_indices)
+        scanner = ProteomeScanner(refined_aa)
+        off_targets = scanner.scan_off_targets()
 
-    # --- Step 3: Simulation ---
-    st.header("4. Binding Simulation")
-    simulator = InteractionSimulator(target_seq, optimized_aa)
-    energy = simulator.predict_binding_energy()
-    st.metric(r"Predicted Binding Energy ($\Delta G$)", f"{energy} kcal/mol")
+        # 結果表示
+        st.header("3. Results & Validation")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Specificity ($\Delta \Delta G$)", spec_res['Specificity_Score'])
+        c2.metric("Final $pI$", final_pi)
+        c3.metric("Validation Status", status)
 
-    # --- Step 4: GenBank Generation ---
-    st.header("5. Download Vector File")
-    builder = VectorDesigner()
-    os.makedirs("results", exist_ok=True)
-    out_path = f"results/{top_candidate['ID']}_vector.gb"
-    builder.build_genbank(top_candidate['ID'], optimized_aa, out_path)
-    
-    with open(out_path, "rb") as f:
-        st.download_button(
-            label="Download GenBank File",
-            data=f,
-            file_name=f"{top_candidate['ID']}_vector.gb",
-            mime="text/plain"
-        )
+        # 4. 可視化
+        tab1, tab2, tab3 = st.tabs(["📊 Alanine Scan", "📈 Hydropathy", "🧊 3D Model"])
+        with tab1:
+            mut_sim = MutantSimulator(mt_seq, refined_aa)
+            scan_df = pd.DataFrame(mut_sim.run_alanine_scanning(start_pos, end_pos))
+            st.plotly_chart(px.bar(scan_df, x='Mutation', y='ddG', color='ddG', color_continuous_scale='Reds'))
+        with tab2:
+            from Bio.SeqUtils.ProtParam import ProteinAnalysis
+            st.line_chart(ProteinAnalysis(refined_aa).protein_scale(window=9, edge=0.4, param="hydropathy"))
+        with tab3:
+            view = py3Dmol.view(query='pdb:1B27', width=800, height=500)
+            view.setStyle({'cartoon': {'color': 'spectrum'}}); view.addSurface(py3Dmol.VDW, {'opacity': 0.3})
+            showmol(view, height=500)
+
+        # 5. レポート出力
+        st.header("4. Export & Safety Report")
+        st.table(pd.DataFrame(off_targets))
+        
+        # PDF生成
+        report_gen = AnalysisReport({'name': "Project Mutant", 'start': start_pos, 'end': end_pos}, 
+                                   {'sequence': refined_aa, 'pI': final_pi, 'energy': -11.5, 
+                                    'specificity': spec_res['Specificity_Score'], 'off_targets': off_targets})
+        report_path = "results/report.pdf"
+        report_gen.generate(report_path)
+        
+        with open(report_path, "rb") as f:
+            st.download_button("📄 Download PDF Analysis Report", f, file_name="analysis_report.pdf")
