@@ -49,3 +49,5 @@ stmol==0.0.9
 py3Dmol==2.0.3
 plotly
 fpdf2
+ipywidgets
+ipython_genutils
