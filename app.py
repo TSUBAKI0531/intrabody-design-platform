@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from Bio.SeqUtils import ProtParamData
 import os
 import matplotlib.pyplot as plt
 import plotly.express as px
@@ -69,8 +70,18 @@ if st.button("🚀 Run Full Design Pipeline"):
             scan_df = pd.DataFrame(mut_sim.run_alanine_scanning(start_pos, end_pos))
             st.plotly_chart(px.bar(scan_df, x='Mutation', y='ddG', color='ddG', color_continuous_scale='Reds'))
         with tab2:
-            from Bio.SeqUtils.ProtParam import ProteinAnalysis
-            st.line_chart(ProteinAnalysis(refined_aa).protein_scale(window=9, edge=0.4, param="hydropathy"))
+            st.subheader("Hydropathy Profile (Kyte-Doolittle)")
+            # 解析用インスタンスの作成
+            analysis = ProteinAnalysis(refined_aa)
+    
+            # 指数データ（Kyte-Doolittle）を指定して計算
+            # scale 引数に ProtParamData.kd を渡すのが正解です
+            kd_scale = ProtParamData.kd
+            chart_data = analysis.protein_scale(window=9, edge=0.4, scale=kd_scale)
+    
+            # グラフの表示
+            st.line_chart(chart_data)
+            st.info("💡 スコアがプラス（上向き）の領域は疎水性が高く、マイナス（下向き）は親水性を示します。")
         with tab3:
             view = py3Dmol.view(query='pdb:1B27', width=800, height=500)
             view.setStyle({'cartoon': {'color': 'spectrum'}}); view.addSurface(py3Dmol.VDW, {'opacity': 0.3})
