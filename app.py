@@ -73,17 +73,17 @@ if st.button("🚀 Run Full Design Pipeline"):
             st.plotly_chart(px.bar(scan_df, x='Mutation', y='ddG', color='ddG', color_continuous_scale='Reds'))
         with tab2:
             st.subheader("Hydropathy Profile (Kyte-Doolittle)")
-            # 解析用インスタンスの作成
             analysis = ProteinAnalysis(refined_aa)
-    
-            # 指数データ（Kyte-Doolittle）を指定して計算
-            # scale 引数に ProtParamData.kd を渡すのが正解です
-            kd_scale = ProtParamData.kd
-            chart_data = analysis.protein_scale(window=9, edge=0.4, scale=kd_scale)
-    
-            # グラフの表示
+            
+            # 引数をキーワード指定(window=...)ではなく、順番通りに渡します
+            # 第1引数: window (9)
+            # 第2引数: edge (0.4)
+            # 第3引数: scale (ProtParamData.kd)
+            chart_data = analysis.protein_scale(9, 0.4, ProtParamData.kd)
+            
+            # グラフ表示
             st.line_chart(chart_data)
-            st.info("💡 スコアがプラス（上向き）の領域は疎水性が高く、マイナス（下向き）は親水性を示します。")
+            st.info("💡 スコアが 0 より大きいと疎水性（ベタつき）、小さいと親水性（溶けやすさ）を示します。")
         with tab3:
             view = py3Dmol.view(query='pdb:1B27', width=800, height=500)
             view.setStyle({'cartoon': {'color': 'spectrum'}}); view.addSurface(py3Dmol.VDW, {'opacity': 0.3})
