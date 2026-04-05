@@ -17,7 +17,6 @@ plotly>=5.15
 
 # --- Web UI (Streamlit) ---
 streamlit>=1.30
-stmol>=0.0.9
 py3Dmol>=2.0.3
 
 # --- Report Generation ---

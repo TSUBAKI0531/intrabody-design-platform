@@ -11,7 +11,7 @@ import traceback
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from stmol import showmol
+import streamlit.components.v1 as components
 import py3Dmol
 from Bio.SeqUtils.ProtParam import ProteinAnalysis
 from Bio.SeqUtils import ProtParamData
@@ -185,7 +185,7 @@ def display_results(res: dict, mt_seq: str) -> None:
     with tab3:
         view = py3Dmol.view(query="pdb:1B27", width=800, height=500)
         view.setStyle({"cartoon": {"color": "spectrum"}})
-        showmol(view, height=500)
+        components.html(view._make_html(), height=520, scrolling=False)
         st.caption("※ デモ用構造 (PDB: 1B27) を表示しています。")
 
 
