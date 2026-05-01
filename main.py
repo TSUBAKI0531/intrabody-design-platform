@@ -21,7 +21,6 @@ from src.optimizer import IntrabodyOptimizer
 from src.simulator import (
     AntibodyDiscoveryEngine,
     AFMValidator,
-    InteractionSimulator,
     MutantSimulator,
     ProteomeScanner,
     RefinementEngine,
